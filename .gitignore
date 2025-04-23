@@ -1,1 +1,46 @@
 .pio
+# === PlatformIO Build Files ===
+.pio/
+.pioenvs/
+.piolibdeps/
+.pio/libdeps/
+.pio/build/
+.pio/test/
+.pio/.cache/
+
+# === Firmware Output ===
+*.bin
+*.elf
+*.hex
+*.map
+*.exe
+
+# === Core dumps ===
+core
+
+# === Logs and Databases ===
+*.log
+*.db
+
+# === CLion IDE files ===
+.idea/
+cmake-build-*/
+CMakeLists.txt.user
+__pycache__/
+
+# === Python (если используешь скрипты) ===
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+env/
+venv/
+*.egg-info/
+
+# === OS Specific ===
+.DS_Store
+Thumbs.db
+
+# === VSCode (если кто-то из команды его использует) ===
+.vscode/

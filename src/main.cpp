@@ -1,18 +1,19 @@
 #include <Arduino.h>
-#include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
+
+#include "DFRobotDFPlayerMini.h"
+DFRobotDFPlayerMini myDFPlayer;
 
 #define WIFI_SSID "MikroTik-AC3"
 #define WIFI_PASS "20000912"
 
 unsigned long playerStart = 0;
+int max_photos = 3;
 
 #define BTN_PIN 14
 #define RELAY 2
 #define LIGHT 15
-
-
 
 #define USE_MIFI 1
 #define SSERIAL_RX 12
@@ -208,7 +209,7 @@ void handleClient(WiFiClient client) {
         client.println("Content-Type: text/html");
         client.println();
         client.println("<html><head><meta charset='utf-8'></head><body>");
-        client.println("<h1>Камера ESP32 (оттенки серого)</h1>");
+        client.println("<h1>Камера ESP32 </h1>");
         client.println("<img src=\"/stream\" style=\"width:50%;height:auto;\">");
         client.println("</body></html>");
     }
@@ -225,6 +226,18 @@ void setup() {
     printer.begin();
     printer.config(10, 140, 4);
 
+    Serial2.begin(9600, SERIAL_8N1, -1, PLAYER);
+    Serial.println("df start");
+    myDFPlayer.begin(Serial2);
+    Serial.println("df end");
+    myDFPlayer.setTimeOut(500);  //Set serial communictaion time out 500ms
+    Serial.println("df end2");
+    myDFPlayer.volume(30);       //Set volume value (0~30).
+    Serial.println("df end3");
+    myDFPlayer.EQ(DFPLAYER_EQ_NORMAL);
+    Serial.println("df end4");
+    // myDFPlayer.outputDevice(DFPLAYER_DEVICE_SD);
+    Serial.println("df end5");
 
     // Инициализируем камеру для трансляции (режим JPEG)
 
@@ -240,10 +253,10 @@ void setup() {
     pinMode(BTN_PIN, INPUT_PULLUP);
     pinMode(RELAY, OUTPUT);
     pinMode(LIGHT, OUTPUT);
-    pinMode(PLAYER, OUTPUT);
+//    pinMode(PLAYER, OUTPUT);
     digitalWrite(RELAY, 0);
     digitalWrite(LIGHT, 0);
-    digitalWrite(PLAYER, 1);
+//    digitalWrite(PLAYER, 1);
 
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -302,36 +315,40 @@ void loop() {
 }
 
 void checkButton() {
-    if (playerStart == 0 and !digitalRead(BTN_PIN)) {
-        Serial.println("кнопка");
+    if(max_photos) {
+        if (playerStart == 0 and !digitalRead(BTN_PIN)) {
+            Serial.println("кнопка");
 
-        digitalWrite(PLAYER, 0);
-        delay(50);
-        digitalWrite(PLAYER, 1);
-        playerStart = millis();
-    }
-    if (playerStart > 0 and millis() - playerStart > 4000) {
-        Serial.println("Печать кадра");
-        esp_camera_deinit();
-        delay(100);
-        cam_init(FRAMESIZE_VGA, PIXFORMAT_GRAYSCALE);
-        delay(100);
-        sensor_t *s = esp_camera_sensor_get();
-        if (s) {
-            s->set_special_effect(s, 0);
-            s->set_exposure_ctrl(s, 1);
-            s->set_gain_ctrl(s, 1);
+//            digitalWrite(PLAYER, 0);
+//            delay(50);
+//            digitalWrite(PLAYER, 1);
+            myDFPlayer.play(1);
+            playerStart = millis();
         }
-        printFrame();
-        delay(100);
-        esp_camera_deinit();
-        delay(100);
-        cam_init(FRAMESIZE_VGA, PIXFORMAT_JPEG);
-        sensor_t *sr = esp_camera_sensor_get();
-        if (sr) {
-            sr->set_special_effect(sr, 2);  // режим "black & white" для трансляции
+        if (playerStart > 0 and millis() - playerStart > 4000) {
+            Serial.println("Печать кадра");
+            esp_camera_deinit();
+            delay(100);
+            cam_init(FRAMESIZE_VGA, PIXFORMAT_GRAYSCALE);
+            delay(100);
+            sensor_t *s = esp_camera_sensor_get();
+            if (s) {
+                s->set_special_effect(s, 0);
+                s->set_exposure_ctrl(s, 1);
+                s->set_gain_ctrl(s, 1);
+            }
+            printFrame();
+            max_photos--;
+            delay(100);
+            esp_camera_deinit();
+            delay(100);
+            cam_init(FRAMESIZE_VGA, PIXFORMAT_JPEG);
+            sensor_t *sr = esp_camera_sensor_get();
+            if (sr) {
+                sr->set_special_effect(sr, 2);  // режим "black & white" для трансляции
+            }
+            playerStart = 0;
         }
-        playerStart = 0;
     }
 }
 
@@ -370,8 +387,9 @@ void printFrame() {
     bilinear_interp(fbj->buf, fbj->width, fbj->height, resized, w, h);
 
     // Наложение текста "ESP32" с масштабом 10 (увеличенный шрифт)
-    drawTextOnImage(resized, w, h, "HELLO!", 100, 100, 10);
-
+    if (max_photos == 2) {
+        drawTextOnImage(resized, w, h, "HELLO!", 100, 100, 10);
+    }
     // Применяем дизеринг для получения бинарного изображения
     dither(resized, w, h);
 

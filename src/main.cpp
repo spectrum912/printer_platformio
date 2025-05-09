@@ -192,6 +192,11 @@ void setup() {
     ArduinoOTA.setHostname("camera");
     ArduinoOTA.setPassword("1234");
     ArduinoOTA.begin();
+    myDFPlayer.play(2);
+    printer.print("Locl IP:   ");
+    printer.println(WiFi.localIP());
+    printer.println();
+    printer.println("\n");
 }
 
 /* =========================  loop()  ========================== */
